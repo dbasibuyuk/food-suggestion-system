@@ -27,6 +27,17 @@ const useStyles = makeStyles({
         flexDirection: 'row',
         justifyContent: 'center',
         marginBottom: "50px",
+    },
+
+    volumeDiv: {
+        display: 'flex',
+        justifyContent: 'start',
+        flexWrap: 'wrap',
+        marginBottom: '20px',
+    },
+
+    volume: {
+        marginRight: '10px'
     }
   });
 
@@ -190,18 +201,36 @@ function getBestList(lst, capacityList) {
         }
     }
 
-    return bestLst[index];
+    console.log("just before");
+    console.log(bestLst);
+    if(bestLst.length === 0) {
+        return null;
+    }
+    else return bestLst[index];
 }
 
+function isChosenVolume(lst) {
+    let tempArr = [];
+    for(let i = 0; i < lst.length; i++) {
+        if(lst[i].volume != -1) {
+            tempArr.push(lst[i]);
+        }
+    }
+
+    return tempArr;
+}
 
 export default function Board(props) {
+    const opts = ['patates', 'soğan', 'dana kıyma', 'makarna', 'un', 'kuru fasulye', 'dana kuşbaşı', 'biber salçası', 'süt', 'enginar', 'bezelye'];
     const classes = useStyles();
     const [data, setData] = useState(null);
     const [renderedData, setRenderedData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [chosenIng, setChosenIng] = useState(null);
     const [noResult,setNoResult] = useState(false);
-    const opts = ['patates', 'soğan', 'dana kıyma', 'makarna'];
+    const [checked, setChecked] = useState(false);
+    const [chosenVolume, setChosenVolume] = useState(opts.map((ing) => {return {name: ing, volume: -1}}));
+
     useEffect(() => {
         
         console.log("first useEffect");
@@ -216,32 +245,73 @@ export default function Board(props) {
             });
     }, []);
 
+    const handleChange = (event) => {
+        if(chosenIng != null && chosenIng.length > 0) {
+            setChecked(event.target.checked);
+        }
+      };
 
     const getBestFitDishes = () => {
         if(chosenIng === null || chosenIng[0].length === 0) {
             setRenderedData(data);
         }
         else {
+
             let opts = chosenIng[0].map(item => { return {name: item}});
-            console.log(opts);
+
             let dishes = data.map((item, index) =>  { return {item, price: index = 10 + index * 5}});     // prices are given by me here.
 
-
-            let filteredList = filterDishes(dishes, opts);
+            let resArr = isChosenVolume(chosenVolume);
+            let filteredList;
+            if(resArr.length > 0 && checked) {
+                resArr = resArr.filter(item => chosenIng[0].includes(item.name));
+                filteredList = filterDishes(dishes, resArr);
+                console.log(`ressArr : ${resArr}`);
+            }
+            else {
+                filteredList = filterDishes(dishes, opts);
+            }
             
             if(filteredList.length === 0) {
                 setNoResult(true);
                 setRenderedData(null);
             }
-            else {
+            else{
                 let allCombinations = combinations(filteredList);
-                let priceList = filteredList.map(item => item.price);
-                let newData = getBestList(allCombinations, opts);
-                console.log(newData);
-                newData = newData.map(dish => dish.item);
-                setRenderedData(newData);
+
+                let newData;
+
+                if(resArr.length > 0 && checked) {
+                    console.log(resArr);
+                    console.log("test");
+                    console.log(allCombinations);
+                    newData = getBestList(allCombinations, resArr);
+                }
+                else {
+                    console.log("test");
+                    console.log()
+                    newData = getBestList(allCombinations, opts);
+                }
+
+                if(newData === null) {
+                    setRenderedData(null);
+                }
+                else {
+                    newData = newData.map(dish => dish.item);
+                    setRenderedData(newData);
+                }
             }
         }
+    }
+
+    const handleVolume = (e) => {
+        console.log(e.target.value);
+        console.log(e.target.name);
+        let temp = chosenVolume.map(tempVal => tempVal.name === e.target.name 
+                                        ? {name: tempVal.name, volume: e.target.value} 
+                                        : {name: tempVal.name, volume: tempVal.volume});
+        console.log(temp);
+        setChosenVolume(temp);
     }
 
     return (
@@ -266,16 +336,34 @@ export default function Board(props) {
                         <TextField
                             {...params}
                             label="Bileşenler"
-                            placeholder="Bir bileşen ismi"
+                            placeholder="Bir bileşen ismi yazın"
                         />    
                         )}
                     />
                     <Button variant="outlined" size="large" onClick={getBestFitDishes}>Ara</Button>
                 </div>
                 <div>
-                <FormGroup>
-                    <FormControlLabel control={<Switch defaultChecked />} label="Bileşen miktarını sınırla" />
-                </FormGroup>
+                    <FormGroup>
+                        <FormControlLabel checked={checked} onChange={handleChange} control={<Switch />} label="Bileşen miktarını sınırla (ml veya gr)" />
+                    </FormGroup>
+                    <div className={classes.volumeDiv}>
+                        {checked
+                        ?
+                            chosenIng[0].map((item, key = uuidv4()) => {
+                                return <TextField  
+                                  type="number"
+                                  className={classes.volume} 
+                                  label={`${item} miktarı`} 
+                                  variant="standard" 
+                                  key={key}
+                                  onChange={handleVolume}
+                                  name={item}
+                                  />
+                                })
+                        :
+                        <div></div>
+                        }
+                    </div>
                 </div>
                 {renderedData === null
                 ?
@@ -284,7 +372,7 @@ export default function Board(props) {
                 <div className={classes.cardBoard}>
                     {
                     renderedData.map((food, key = uuidv4()) => {
-                        return <Card name={food.name} imagePath={food.imagePath} url={food.url} key={key}/>
+                        return <Card name={food.name} imagePath={food.imagePath} url={food.url} key={key} ingredients={food.ingredients}/>
                     })
                     }
                 </div>

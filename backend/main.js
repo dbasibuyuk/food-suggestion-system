@@ -61,8 +61,8 @@ function scrapeData () {
 
 
 async function addRecipe() {
-    const newRecipe = new Recipes({ name: 'karnıyarık',
-                                    imagePath: null,
+    const newRecipe = new Recipes({ name: 'yeni',
+                                    imagePath: 'null',
                                     ingredients: [
                                         {name: 'zeytin yağı', quantity: '1 su bardağı', volume: 'null'},
                                         {name: 'soğan', quantity: '1 adet', volume: 'null'},
@@ -71,7 +71,9 @@ async function addRecipe() {
                                         {name: 'bezelye', quantity: '1 su bardağı', volume: 'null'},
                                         {name: 'enginar', quantity: '8 adet', volume: 'null'},
                                         {name: 'limon', quantity: '2 adet', volume: 'null'},
-                                        {name: 'tuz', quantity: '1 çay kaşığı', volume: 'null'},
+                                        {name: 'tusz', quantity: '1 çay kaşığı', volume: 'null'},
+                                        {name: 'tuaz', quantity: '1 çay kaşığı', volume: 'null'},
+                                        {name: 'tudz', quantity: '1 çay kaşığı', volume: 'null'},
                                     ],
                                     url: 'null',
                                 });
