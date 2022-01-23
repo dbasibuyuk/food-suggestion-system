@@ -1,7 +1,7 @@
 #! /bin/sh
-cd scraping/env
+cd scraping2/venv
 source bin/activate
-cd ../fetchData
+cd ../supermarkets
 scrapy crawl vegfruit -O vegetable-fruit.json
 scrapy crawl meatfishencoop -O meat-fish-hencoop.json
 scrapy crawl breakfast -O breakfast.json

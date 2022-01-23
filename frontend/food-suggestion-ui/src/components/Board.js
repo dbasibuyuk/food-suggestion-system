@@ -106,7 +106,6 @@ function combinations(set) {
 
 function filterCombinations(allCombinations, capacity) {
     let returnLst = [];
-    console.log(allCombinations);
     for(let i = 0; i < allCombinations.length; i++) {
         for(let k = 0; k < allCombinations[i].length; k++) {
         }
@@ -201,8 +200,6 @@ function getBestList(lst, capacityList) {
         }
     }
 
-    console.log("just before");
-    console.log(bestLst);
     if(bestLst.length === 0) {
         return null;
     }
@@ -212,7 +209,7 @@ function getBestList(lst, capacityList) {
 function isChosenVolume(lst) {
     let tempArr = [];
     for(let i = 0; i < lst.length; i++) {
-        if(lst[i].volume != -1) {
+        if(lst[i].volume !== -1) {
             tempArr.push(lst[i]);
         }
     }
@@ -220,8 +217,9 @@ function isChosenVolume(lst) {
     return tempArr;
 }
 
+
 export default function Board(props) {
-    const opts = ['patates', 'soğan', 'dana kıyma', 'makarna', 'un', 'kuru fasulye', 'dana kuşbaşı', 'biber salçası', 'süt', 'enginar', 'bezelye'];
+    const opts = ['kaşar peyniri', 'karnabahar', 'kuru fasulye', 'taze fasulye', 'tavuk göğsü', 'nohut', 'lor peyniri', 'brokoli', 'mantar', 'havuç', 'kırmızı mercimek', 'patlıcan','bulgur', 'pırasa', 'bamya','yeşil mercimek', 'lahana', 'kuzu kuşbaşı', 'maydonoz', 'börülce', 'pirinç', 'kereviz', 'patates', 'soğan', 'dana kıyma', 'makarna', 'un', 'dana kuşbaşı', 'süt', 'enginar', 'bezelye'];
     const classes = useStyles();
     const [data, setData] = useState(null);
     const [renderedData, setRenderedData] = useState(null);
@@ -230,14 +228,14 @@ export default function Board(props) {
     const [noResult,setNoResult] = useState(false);
     const [checked, setChecked] = useState(false);
     const [chosenVolume, setChosenVolume] = useState(opts.map((ing) => {return {name: ing, volume: -1}}));
-
+    const [prices, setPrices] = useState([]);
     useEffect(() => {
         
-        console.log("first useEffect");
         axios.get('http://127.0.0.1:3001')
             .then(response => {
-                setData(response.data);
-                setRenderedData(response.data);
+                setData(response.data[0]);
+                setRenderedData(response.data[0]);
+                setPrices(response.data[1]);
                 setLoading(false);
             })
             .catch(error => {
@@ -259,18 +257,17 @@ export default function Board(props) {
 
             let opts = chosenIng[0].map(item => { return {name: item}});
 
-            let dishes = data.map((item, index) =>  { return {item, price: index = 10 + index * 5}});     // prices are given by me here.
-
+            let dishes = data.map((item, index) =>  { return {item, price: prices[index]}});     // prices are given by me here.
             let resArr = isChosenVolume(chosenVolume);
             let filteredList;
             if(resArr.length > 0 && checked) {
                 resArr = resArr.filter(item => chosenIng[0].includes(item.name));
                 filteredList = filterDishes(dishes, resArr);
-                console.log(`ressArr : ${resArr}`);
             }
             else {
                 filteredList = filterDishes(dishes, opts);
             }
+
             
             if(filteredList.length === 0) {
                 setNoResult(true);
@@ -282,14 +279,9 @@ export default function Board(props) {
                 let newData;
 
                 if(resArr.length > 0 && checked) {
-                    console.log(resArr);
-                    console.log("test");
-                    console.log(allCombinations);
                     newData = getBestList(allCombinations, resArr);
                 }
                 else {
-                    console.log("test");
-                    console.log()
                     newData = getBestList(allCombinations, opts);
                 }
 
@@ -305,12 +297,9 @@ export default function Board(props) {
     }
 
     const handleVolume = (e) => {
-        console.log(e.target.value);
-        console.log(e.target.name);
         let temp = chosenVolume.map(tempVal => tempVal.name === e.target.name 
                                         ? {name: tempVal.name, volume: e.target.value} 
                                         : {name: tempVal.name, volume: tempVal.volume});
-        console.log(temp);
         setChosenVolume(temp);
     }
 

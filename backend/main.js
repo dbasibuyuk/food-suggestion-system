@@ -23,7 +23,6 @@ const recipesSchema = new mongoose.Schema({
 });
 
 const Recipes = mongoose.model('Recipes', recipesSchema);
-
 app.listen(port, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
   });
@@ -34,16 +33,96 @@ app.all('/*', function(req, res, next) {
     next();
   });
 
+
+global.query = []
+global.prices = []
+
 app.get('/', async (req, res) => {
     try{
-        const query = await Recipes.find();
-        res.send(query);
+        if(query.length === 0) {
+            query = await Recipes.find();
+            const priceList = readFiles();
+            for(let i = 0; i < query.length; i++) {
+                prices.push(getPrice(query[i].ingredients, priceList));
+            }
+            console.log("reading files..");
+        }
+
+        res.send([query, prices]);
     }catch(e) {
         console.log(e);
         res.send('Something went wrong!');
     }
 });
 
+function getPrice(item, prices) {
+    let totalPrice = 0;
+    for(let c = 0; c < item.length; c++) {
+        let total = 100000000;
+        for(let i = 0; i < prices.length; i++) {
+            for(let k = 0; k < prices[i].length; k++) {
+                if(prices[i][k].name != null && prices[i][k].name != 'null') {
+                    if(prices[i][k].name.toLowerCase().includes(item[c].name)) {
+                        let getPricePerVol = getItemPricePerVolume(prices[i][k], item[c]);
+
+                        if(getPricePerVol != -1) {
+                            if(total > getPricePerVol) {
+                                total = getPricePerVol;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if(total === 100000000) {
+            totalPrice += 2;
+        }else {
+            totalPrice += total;
+        }
+    }
+
+    return totalPrice;
+}
+
+function getItemPricePerVolume(price, item) {
+    let coefficient = 1;
+    const parsedItem = price.name.split(' ');
+    let parsedIngredientVolume = item.volume.split(' ');
+    for(let i = 0; i < parsedItem.length; i++) {
+        if((parsedItem[i].toLowerCase() === 'kg' 
+            || parsedItem[i].toLowerCase() === 'l') 
+            || parsedItem[i].toLowerCase() === 'lt') { // will multiply by 1000
+                coefficient *= 1000;
+                let tempCoefficient =parseInt(parsedItem[i - 1]);
+                if(!isNaN(tempCoefficient)) {
+                    coefficient *= tempCoefficient;
+                }
+        }
+        else if((parsedItem[i].toLowerCase() === 'g' || parsedItem[i].toLowerCase() === 'gr')
+             || (parsedItem[i].toLowerCase() === 'gram' || parsedItem[i].toLowerCase() === 'ml')) {
+                let tempCoefficient =parseInt(parsedItem[i - 1]);
+                if(!isNaN(tempCoefficient)) {
+                    coefficient *= tempCoefficient;
+                }
+        }
+    }
+
+    let productPrice = price.price.split(' ');
+
+    if(coefficient >= parsedIngredientVolume[0]) {
+        let parseComma = productPrice[0].split(',');
+
+        let part1 = parseComma[0];
+        let part2 = parseComma[1] * 0.01;
+        let part3 = part1 * 1 + part2;
+        part3 = part3 * parsedIngredientVolume[0] / coefficient;
+        return part3;
+    }
+    else {
+        return -1;
+    }
+}
 
 function scrapeData () {
     this.execCommand = function(cmd, callback) {
@@ -61,7 +140,7 @@ function scrapeData () {
 
 
 async function addRecipe() {
-    const newRecipe = new Recipes({ name: 'yeni',
+    const newRecipe = new Recipes({ name: 'yeni6',
                                     imagePath: 'null',
                                     ingredients: [
                                         {name: 'zeytin yağı', quantity: '1 su bardağı', volume: 'null'},
@@ -93,7 +172,7 @@ function readFiles(){
         let data = []
 
         for(let i = 0; i < 18; i++) {
-            let temp = JSON.parse(fs.readFileSync('scraping/fetchData/' + fileNames[i] + '.json', 'utf8'));
+            let temp = JSON.parse(fs.readFileSync('scraping2/supermarkets/' + fileNames[i] + '.json', 'utf8'));
             
             let tempObj = []
             for (let [index, value] of Object.entries(temp)) {
@@ -102,7 +181,6 @@ function readFiles(){
 
             data.push(tempObj);
         }
-        console.log('Files are read and saved.');
         return data;
     } catch(e) {
         console.log(e);
@@ -113,23 +191,18 @@ var scrape = new scrapeData();
 
 async function main () {
     try{
-        //scrape.execCommand('./scrape.sh', () => { });
+        scrape.execCommand('./scrape.sh', () => { });
         mongoose.connect('mongodb+srv://doruk:doruk@cluster0.muxfo.mongodb.net/test');
         const connection = mongoose.connection;
         connection.once("open", function() {
             console.log("Database connection is established.");
         });
 
-        //console.log('Trying to save a recipe..')
         //addRecipe()
     } catch(e){
         console.log(e);
     }
 
-    const priceList = readFiles();
-    for(let obj of priceList[0]) {
-        //console.log(obj['name'] + ': ' + obj['price']);
-    }
 }
 
 
